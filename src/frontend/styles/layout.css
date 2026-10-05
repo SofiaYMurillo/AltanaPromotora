@@ -1,0 +1,31 @@
+@utility container {
+  width: 100%;
+  max-width: var(--layout-container-max);
+  margin-inline: auto;
+  padding-inline: var(--layout-container-padding);
+
+  @media (width >= theme(--breakpoint-md)) {
+    padding-inline: var(--layout-container-padding-md);
+  }
+
+  @media (width >= theme(--breakpoint-lg)) {
+    padding-inline: var(--layout-container-padding-lg);
+  }
+}
+
+@utility grid-layout {
+  display: grid;
+  grid-template-columns: repeat(var(--layout-grid-columns), minmax(0, 1fr));
+}
+
+@utility section-y {
+  padding-block: var(--layout-section-padding-y);
+}
+
+@utility section-y-compact {
+  padding-block: var(--layout-section-padding-y-compact);
+}
+
+@utility section-header-gap {
+  margin-top: var(--layout-section-header-gap);
+}

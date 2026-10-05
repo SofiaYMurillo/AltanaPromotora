@@ -1,0 +1,412 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Public visitor / prospect. Distinct from User.
+/// No password, credential, session, or role.
+model Client {
+  id           String        @id
+  email        String?       @unique
+  phone        String?
+  firstName    String?
+  lastName     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+
+  @@index([phone])
+}
+
+/// Persisted visit Appointment — maps to @/domain Appointment.
+/// LegacyAppointment is intentionally not modeled here.
+model Appointment {
+  id                      String   @id
+  type                    String
+  propertyId              String?
+  officeLocationId        String?
+  date                    String
+  time                    String
+  status                  String
+  communicationPreference String
+  contactEmail            String?
+  contactPhone            String?
+  clientId                String?
+  assignedWorkerId        String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  client                  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([type, propertyId, date, time])
+  @@index([type, officeLocationId, date, time])
+  @@index([status])
+  @@index([clientId])
+}
+
+/// Recurring weekly availability for a visit resource (property or office).
+/// No FK to catalog entities — those remain independently persisted.
+model AvailabilityRule {
+  id              String   @id
+  resourceType    String
+  resourceId      String
+  dayOfWeek       Int
+  startTime       String
+  endTime         String
+  intervalMinutes Int
+  slotCapacity    Int
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([resourceType, resourceId])
+  @@index([resourceType, resourceId, dayOfWeek])
+}
+
+/// Prepared for security persistence.
+model SecurityEvent {
+  id                 String   @id
+  type               String
+  timestamp          DateTime
+  severity           String
+  source             String
+  emailAttempted     String?
+  ipReference        String?
+  userAgentReference String?
+  route              String?
+  success            Boolean?
+  metadataJson       String?
+  notificationStatus String?
+  createdAt          DateTime @default(now())
+
+  @@index([type, timestamp])
+  @@index([severity, timestamp])
+}
+
+/// Application user — maps to @/types/user User.
+/// Never expose password material via this model to Presentation.
+model User {
+  id                  String      @id
+  email               String      @unique
+  firstName           String
+  lastName            String
+  phone               String?
+  profileMediaAssetId String?
+  active              Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  credential          Credential?
+  sessions            Session[]
+  userRoles           UserRole[]
+  userPermissions     UserPermission[]
+  notifications       Notification[]
+  profileMediaAsset   MediaAsset? @relation("UserProfile", fields: [profileMediaAssetId], references: [id], onDelete: SetNull)
+
+  @@index([profileMediaAssetId])
+}
+
+/// Password credential — administrators only.
+/// Workers and clients must not have Credential rows.
+model Credential {
+  userId       String   @id
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Role {
+  id              String           @id
+  name            String           @unique
+  label           String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+}
+
+model UserRole {
+  id        String   @id
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model Permission {
+  id              String           @id
+  name            String           @unique
+  label           String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+}
+
+model UserPermission {
+  id           String     @id
+  userId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([permissionId])
+}
+
+model RolePermission {
+  id           String     @id
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+/// Server session. Cookie holds opaque token; only tokenHash is stored.
+model Session {
+  id        String    @id
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Worker invitation — maps to @/types WorkerInvitation (without codeHash).
+/// Plain invitation codes are never stored; only codeHash.
+model WorkerInvitation {
+  id              String    @id
+  email           String
+  firstName       String?
+  lastName        String?
+  roleId          String
+  active          Boolean   @default(true)
+  codeHash        String
+  grantedPermissionNamesJson String @default("[]")
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  usedAt          DateTime?
+  invitedByUserId String?
+  emailDeliveryStatus String @default("not_attempted")
+  emailSentAt         DateTime?
+  lastEmailAttemptAt  DateTime?
+  resendCount         Int       @default(0)
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+/// In-app notification for internal users.
+/// Independent from SecurityEvent — reading a notification never mutates the event.
+/// Plain codes, hashes, and session tokens must never be stored here.
+model Notification {
+  id               String    @id
+  recipientUserId  String
+  category         String
+  type             String
+  title            String
+  message          String
+  securityEventId  String?
+  readAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  recipient        User      @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@unique([securityEventId, recipientUserId])
+  @@index([recipientUserId, createdAt])
+  @@index([recipientUserId, readAt])
+}
+
+/// Real-estate development. Independent from Property publication.
+model Project {
+  id           String     @id
+  title        String
+  imageSrc     String
+  imageAlt     String
+  sectionsJson String
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  properties   Property[]
+
+  @@index([active])
+}
+
+/// Commercial unit. projectId is optional; active is independent from Project.
+/// Appointment.propertyId stays a loose string — no FK, no cascade delete.
+model Property {
+  id            String   @id
+  projectId     String?
+  title         String
+  imagesJson    String
+  operation     String
+  type          String
+  city          String
+  bedrooms      Int
+  bathrooms     Int
+  area          Int
+  parkingSpaces Int
+  price         Int
+  featuresJson  String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  project       Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([active])
+  @@index([projectId])
+  @@index([city])
+  @@index([operation, type])
+}
+
+/// Administrative audit trail. Append-only: never updated, never deleted.
+/// Independent from SecurityEvent and Notification.
+/// entityType/entityId are logical references on purpose — no FK, so an entry
+/// survives deletion or reshaping of the audited entity.
+model AuditEntry {
+  id           String   @id
+  actorUserId  String?
+  actorDisplay String?
+  action       String
+  entityType   String
+  entityId     String
+  entityLabel  String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+}
+
+/// Uploaded or registered multimedia resource (metadata only — binary in storage).
+model MediaAsset {
+  id           String   @id
+  fileName     String
+  originalName String
+  mimeType     String
+  kind         String
+  url          String
+  alt          String   @default("")
+  width        Int?
+  height       Int?
+  size         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  sectionBackgrounds       SectionBackground[] @relation("SectionBackgroundMedia")
+  sectionBackgroundPosters SectionBackground[] @relation("SectionBackgroundPoster")
+  siteConfigurationLogos   SiteConfiguration[] @relation("SiteLogo")
+  userProfiles             User[]              @relation("UserProfile")
+  aboutTeamMembers         AboutTeamMember[]
+
+  @@index([kind, createdAt])
+}
+
+/// Singleton CMS row for global site identity and contact overrides.
+model SiteConfiguration {
+  id               String      @id @default("default")
+  logoMediaAssetId String?
+  contactJson      String      @default("{}")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  logoMediaAsset   MediaAsset? @relation("SiteLogo", fields: [logoMediaAssetId], references: [id], onDelete: SetNull)
+}
+
+/// CMS background configuration for a public page section.
+model SectionBackground {
+  id                 String      @id
+  pageKey            String
+  sectionKey         String
+  backgroundType     String
+  mediaAssetId       String?
+  posterMediaAssetId String?
+  backgroundToken    String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  mediaAsset         MediaAsset? @relation("SectionBackgroundMedia", fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  posterMediaAsset   MediaAsset? @relation("SectionBackgroundPoster", fields: [posterMediaAssetId], references: [id], onDelete: SetNull)
+
+  @@unique([pageKey, sectionKey])
+}
+
+/// Singleton copy for the public About → Equipo section.
+model AboutTeamSection {
+  id             String   @id @default("default")
+  title          String
+  description    String
+  pendingMessage String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/// Published team member shown on /about when published and configured.
+model AboutTeamMember {
+  id           String      @id
+  name         String
+  role         String
+  description  String      @default("")
+  mediaAssetId String?
+  sortOrder    Int         @default(0)
+  published    Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  mediaAsset   MediaAsset? @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+
+  @@index([published, sortOrder])
+  @@index([sortOrder])
+}
+
+/// Public request to join the internal panel. Approved requests become invitations.
+model AccessRequest {
+  id              String    @id
+  email           String
+  firstName       String?
+  lastName        String?
+  status          String
+  invitationId    String?
+  decidedByUserId String?
+  decidedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([email])
+  @@index([status, createdAt])
+}
+
+/// Visitor inquiry from the public site. Independent from Client and Appointment.
+model ContactRequest {
+  id        String   @id
+  name      String
+  email     String?
+  phone     String?
+  message   String
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}

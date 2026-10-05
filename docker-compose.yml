@@ -1,0 +1,23 @@
+services:
+  web:
+    build: .
+    image: altana-inmobiliaria:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/data/altana.db
+      APP_URL: http://localhost:3000
+      COOKIE_SECURE: "false"
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    volumes:
+      - altana-data:/data
+      - altana-uploads:/app/public/uploads
+    restart: unless-stopped
+
+volumes:
+  altana-data:
+  altana-uploads:

@@ -1,0 +1,73 @@
+import {
+  PRINCIPAL_ADMIN_EMAIL,
+  PRINCIPAL_ADMIN_USER_ID,
+} from "@/features/auth/auth.data";
+import type { User } from "@/types/user";
+
+export const users: User[] = [
+  {
+    id: "user-001",
+    email: "altanapromotorassas@gmail.com",
+    firstName: "Juli",
+    lastName: "",
+    phone: "+57 300 000 0001",
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "user-002",
+    email: "client@altana.test",
+    firstName: "Carlos",
+    lastName: "Ruiz",
+    phone: "+57 300 000 0002",
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "user-003",
+    email: "cliente-secundario@altana.test",
+    firstName: "Ana",
+    lastName: "Martínez",
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "user-004",
+    email: "worker@altana.test",
+    firstName: "Luis",
+    lastName: "Pérez",
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "user-005",
+    email: "inactive@altana.test",
+    firstName: "Sofía",
+    lastName: "Vargas",
+    active: false,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-15T00:00:00.000Z",
+  },
+  {
+    id: PRINCIPAL_ADMIN_USER_ID,
+    email: PRINCIPAL_ADMIN_EMAIL,
+    firstName: "ALTANA",
+    lastName: "Practicantes",
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "user-006",
+    email: "admin-limited@altana.test",
+    firstName: "Diego",
+    lastName: "López",
+    active: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+];

@@ -1,0 +1,81 @@
+############################################################
+# Production-ready .dockerignore for Next.js + Prisma
+############################################################
+
+# Dependencies (installed inside Docker)
+node_modules/
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js build outputs
+.next/
+out/
+dist/
+build/
+.vercel/
+
+# Local SQLite and generated client
+prisma/*.db
+prisma/*.db-journal
+src/generated/prisma
+
+# User uploads (persisted via Docker volume at runtime)
+public/uploads/
+
+# Tests and smoke scripts (not needed to build/run)
+coverage/
+scripts/
+
+# Local development and editor files
+.git/
+.gitignore
+.gitattributes
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.log
+
+# Environment variables — secrets are passed at runtime
+.env
+.env*.local
+.env.development
+.env.test
+.env.production.local
+
+# Docker files themselves
+Dockerfile*
+.dockerignore
+compose.yaml
+compose.yml
+docker-compose*.yaml
+docker-compose*.yml
+
+# Documentation
+*.md
+docs/
+AGENTS.md
+CLAUDE.md
+
+# CI/CD
+.github/
+
+# Cache and temp
+.cache/
+.swc/
+.turbo/
+.tmp/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# AI tool metadata
+.cursor/
+.agents/
